@@ -15,6 +15,7 @@
 		C937FC632FCE13DB00A6F9B8 /* NonogramViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C937FC622FCE13DB00A6F9B8 /* NonogramViewModel.swift */; };
 		C937FC652FCE14DC00A6F9B8 /* NonogramCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C937FC642FCE14DC00A6F9B8 /* NonogramCellView.swift */; };
 		C937FC672FCE14E900A6F9B8 /* NonogramGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C937FC662FCE14E900A6F9B8 /* NonogramGameView.swift */; };
+		C937FC692FD05D3600A6F9B8 /* NonogramBoardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C937FC682FD05D3600A6F9B8 /* NonogramBoardView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 		C937FC622FCE13DB00A6F9B8 /* NonogramViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramViewModel.swift; sourceTree = "<group>"; };
 		C937FC642FCE14DC00A6F9B8 /* NonogramCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramCellView.swift; sourceTree = "<group>"; };
 		C937FC662FCE14E900A6F9B8 /* NonogramGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramGameView.swift; sourceTree = "<group>"; };
+		C937FC682FD05D3600A6F9B8 /* NonogramBoardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramBoardView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -91,6 +93,7 @@
 			children = (
 				C937FC642FCE14DC00A6F9B8 /* NonogramCellView.swift */,
 				C937FC662FCE14E900A6F9B8 /* NonogramGameView.swift */,
+				C937FC682FD05D3600A6F9B8 /* NonogramBoardView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -169,6 +172,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C937FC5F2FCE0E6400A6F9B8 /* CellState.swift in Sources */,
+				C937FC692FD05D3600A6F9B8 /* NonogramBoardView.swift in Sources */,
 				C937FC612FCE0E7100A6F9B8 /* Nonogram.swift in Sources */,
 				C937FC4B2FCE085A00A6F9B8 /* ICS3U CulminatingApp.swift in Sources */,
 				C937FC672FCE14E900A6F9B8 /* NonogramGameView.swift in Sources */,

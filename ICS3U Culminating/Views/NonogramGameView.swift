@@ -9,7 +9,7 @@ import SwiftUI
 
 /**
  The main view for the Nonogram game.
- It displays the clues, the interactive grid, and game controls.
+ It displays the difficulty selection, the win status, and the game board.
  */
 struct NonogramGameView: View {
     
@@ -18,8 +18,11 @@ struct NonogramGameView: View {
     // The view model that manages the game state
     @State var viewModel = NonogramViewModel()
     
+    // Tracks the current difficulty selection
+    @State private var selectedDifficulty: String = "Easy"
+    
     // MARK: - Computed properties
-    //1111
+    
     var body: some View {
         VStack(spacing: 20) {
             
@@ -27,6 +30,24 @@ struct NonogramGameView: View {
             Text("Nonogram")
                 .font(.largeTitle)
                 .bold()
+            
+            // Difficulty Picker
+            Picker("Difficulty", selection: $selectedDifficulty) {
+                Text("Easy (5x5)").tag("Easy")
+                Text("Medium (10x10)").tag("Medium")
+                Text("Hard (15x15)").tag("Hard")
+            }
+            .pickerStyle(.segmented)
+            .onChange(of: selectedDifficulty) { 
+                // When the difficulty changes, load the corresponding puzzle
+                if selectedDifficulty == "Easy" {
+                    viewModel.loadPuzzle(Nonogram.example5x5)
+                } else if selectedDifficulty == "Medium" {
+                    viewModel.loadPuzzle(Nonogram.example10x10)
+                } else if selectedDifficulty == "Hard" {
+                    viewModel.loadPuzzle(Nonogram.house15x15)
+                }
+            }
             
             // Win message
             if viewModel.puzzle.isSolved {
@@ -42,55 +63,16 @@ struct NonogramGameView: View {
             }
             
             // The Game Board
-            VStack(spacing: 0) {
-                // Column Clues
-                HStack(spacing: 0) {
-                    // Spacer for the top-left corner (above row clues)
-                    Spacer()
-                        .frame(width: 60) 
-                    
-                    // Column clues display
-                    ForEach(0..<viewModel.puzzle.columnClues.count, id: \.self) { columnIndex in
-                        VStack(spacing: 2) {
-                            let clues: [Int] = viewModel.puzzle.columnClues[columnIndex]
-                            ForEach(0..<clues.count, id: \.self) { clueIndex in
-                                let clue: Int = clues[clueIndex]
-                                Text("\(clue)")
-                                    .font(.caption2)
-                                    .frame(width: 30)
-                            }
-                        }
-                    }
-                }
-                
-                // Row Clues and Grid
-                ForEach(0..<viewModel.puzzle.grid.count, id: \.self) { rowIndex in
-                    HStack(spacing: 0) {
-                        // Row clues display
-                        HStack(spacing: 4) {
-                            Spacer()
-                            let clues: [Int] = viewModel.puzzle.rowClues[rowIndex]
-                            ForEach(0..<clues.count, id: \.self) { clueIndex in
-                                let clue: Int = clues[clueIndex]
-                                Text("\(clue)")
-                                    .font(.caption2)
-                            }
-                        }
-                        .frame(width: 60)
-                        .padding(.trailing, 5)
-                        
-                        // The interactive row of cells
-                        ForEach(0..<viewModel.puzzle.grid[rowIndex].count, id: \.self) { columnIndex in
-                            NonogramCellView(state: viewModel.puzzle.grid[rowIndex][columnIndex])
-                                .onTapGesture {
-                                    // Tell the view model to toggle this cell
-                                    viewModel.toggleCell(atRow: rowIndex, atColumn: columnIndex)
-                                }
-                        }
-                    }
-                }
+            ScrollView([.horizontal, .vertical]) {
+                // By passing the puzzle as an input to a separate View struct (NonogramBoardView),
+                // we isolate the grid logic. 
+                // Using .id(viewModel.puzzle.id) forces SwiftUI to recreate the board 
+                // whenever the puzzle changes, preventing index-out-of-range crashes.
+                NonogramBoardView(puzzle: viewModel.puzzle, onToggle: { row, col in
+                    viewModel.toggleCell(atRow: row, atColumn: col)
+                })
+                .id(viewModel.puzzle.id)
             }
-            .padding()
             
             // Controls
             HStack(spacing: 30) {

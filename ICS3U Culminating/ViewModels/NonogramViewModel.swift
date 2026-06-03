@@ -36,6 +36,13 @@ class NonogramViewModel {
     // MARK: - Functions
     
     /**
+     Loads a new puzzle into the view model.
+     */
+    func loadPuzzle(_ newPuzzle: Nonogram) {
+        self.puzzle = newPuzzle
+    }
+    
+    /**
      Toggles the state of a specific cell in the grid.
      
      In a Nonogram game, the cycle for a cell usually goes:

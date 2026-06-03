@@ -12,9 +12,12 @@ import Foundation
  It handles the user's progress (grid), the target image (solution),
  and automatically calculates the numerical clues for rows and columns.
  */
-struct Nonogram {
+struct Nonogram: Identifiable {
     
     // MARK: - Stored properties
+    
+    // Unique identifier so SwiftUI can distinguish different puzzle instances
+    let id = UUID()
     
     // The current state of the grid as the user plays.
     // This is a 2D array where grid[row][column] gives the state of a cell.
@@ -190,5 +193,24 @@ extension Nonogram {
         [false, true, true, false, false, false, false, true, true, false],
         [false, false, true, true, true, true, true, true, false, false],
         [false, false, false, true, true, true, true, false, false, false]
+    ])
+    
+    // A 15x15 pattern resembling a simple house (fitting the original theme!)
+    static let house15x15 = Nonogram(solution: [
+        [false, false, false, false, false, false, false, true, false, false, false, false, false, false, false],
+        [false, false, false, false, false, false, true, true, true, false, false, false, false, false, false],
+        [false, false, false, false, false, true, true, true, true, true, false, false, false, false, false],
+        [false, false, false, false, true, true, true, true, true, true, true, false, false, false, false],
+        [false, false, false, true, true, true, true, true, true, true, true, true, false, false, false],
+        [false, false, true, true, true, true, true, true, true, true, true, true, true, false, false],
+        [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
+        [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+        [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
+        [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
+        [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
+        [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
+        [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
+        [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
+        [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false]
     ])
 }
