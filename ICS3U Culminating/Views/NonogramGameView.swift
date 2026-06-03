@@ -19,7 +19,7 @@ struct NonogramGameView: View {
     @State var viewModel = NonogramViewModel()
     
     // MARK: - Computed properties
-    
+    //1111
     var body: some View {
         VStack(spacing: 20) {
             
