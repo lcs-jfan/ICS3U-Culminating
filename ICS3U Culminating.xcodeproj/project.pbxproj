@@ -13,6 +13,8 @@
 		C937FC5F2FCE0E6400A6F9B8 /* CellState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C937FC5E2FCE0E6400A6F9B8 /* CellState.swift */; };
 		C937FC612FCE0E7100A6F9B8 /* Nonogram.swift in Sources */ = {isa = PBXBuildFile; fileRef = C937FC602FCE0E7100A6F9B8 /* Nonogram.swift */; };
 		C937FC632FCE13DB00A6F9B8 /* NonogramViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = C937FC622FCE13DB00A6F9B8 /* NonogramViewModel.swift */; };
+		C937FC652FCE14DC00A6F9B8 /* NonogramCellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C937FC642FCE14DC00A6F9B8 /* NonogramCellView.swift */; };
+		C937FC672FCE14E900A6F9B8 /* NonogramGameView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C937FC662FCE14E900A6F9B8 /* NonogramGameView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +25,8 @@
 		C937FC5E2FCE0E6400A6F9B8 /* CellState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CellState.swift; sourceTree = "<group>"; };
 		C937FC602FCE0E7100A6F9B8 /* Nonogram.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Nonogram.swift; sourceTree = "<group>"; };
 		C937FC622FCE13DB00A6F9B8 /* NonogramViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramViewModel.swift; sourceTree = "<group>"; };
+		C937FC642FCE14DC00A6F9B8 /* NonogramCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramCellView.swift; sourceTree = "<group>"; };
+		C937FC662FCE14E900A6F9B8 /* NonogramGameView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NonogramGameView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -85,6 +89,8 @@
 		C937FC542FCE085A00A6F9B8 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				C937FC642FCE14DC00A6F9B8 /* NonogramCellView.swift */,
+				C937FC662FCE14E900A6F9B8 /* NonogramGameView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -165,6 +171,8 @@
 				C937FC5F2FCE0E6400A6F9B8 /* CellState.swift in Sources */,
 				C937FC612FCE0E7100A6F9B8 /* Nonogram.swift in Sources */,
 				C937FC4B2FCE085A00A6F9B8 /* ICS3U CulminatingApp.swift in Sources */,
+				C937FC672FCE14E900A6F9B8 /* NonogramGameView.swift in Sources */,
+				C937FC652FCE14DC00A6F9B8 /* NonogramCellView.swift in Sources */,
 				C937FC632FCE13DB00A6F9B8 /* NonogramViewModel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

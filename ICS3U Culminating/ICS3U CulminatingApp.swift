@@ -11,7 +11,7 @@ import SwiftUI
 struct ICS3U_CulminatingApp: App {
     var body: some Scene {
         WindowGroup {
-            HousesListView()
+            NonogramGameView()
         }
     }
 }
