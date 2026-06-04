@@ -120,4 +120,28 @@ class NonogramViewModel {
         }
         puzzle.grid = newGrid
     }
+    
+    /**
+     Reveals the solution by filling all cells that should be true.
+     */
+    func revealSolution() {
+        let rowCount = puzzle.grid.count
+        let colCount = puzzle.grid.isEmpty ? 0 : puzzle.grid[0].count
+        
+        var solvedGrid: [[CellState]] = []
+        for rowIndex in 0..<rowCount {
+            var newRow: [CellState] = []
+            for colIndex in 0..<colCount {
+                // Check if the solution says this cell should be filled
+                if puzzle.solution[rowIndex][colIndex] {
+                    newRow.append(.filled)
+                } else {
+                    // Otherwise it's empty (or we could mark it, but empty is cleaner for reveal)
+                    newRow.append(.empty)
+                }
+            }
+            solvedGrid.append(newRow)
+        }
+        puzzle.grid = solvedGrid
+    }
 }
