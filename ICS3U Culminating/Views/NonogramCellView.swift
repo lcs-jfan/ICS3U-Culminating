@@ -9,7 +9,7 @@ import SwiftUI
 
 /**
  A view that represents a single cell in the Nonogram grid.
- It changes its appearance based on the 'state' provided.
+ Now supports a dynamic size to fit different grid dimensions.
  */
 struct NonogramCellView: View {
     
@@ -18,8 +18,8 @@ struct NonogramCellView: View {
     // The current state of this specific cell
     let state: CellState
     
-    // The size of the square cell
-    let size: CGFloat = 30
+    // The size of the square cell (passed in by the board view)
+    let size: CGFloat
     
     // MARK: - Computed properties
     
@@ -29,19 +29,17 @@ struct NonogramCellView: View {
             Rectangle()
                 .fill(.white)
                 .frame(width: size, height: size)
-                // Border to define the grid lines
-                .border(.gray, width: 0.5)
+                .border(.gray.opacity(0.3), width: 0.5)
             
             // Overlay based on the state
             if state == .filled {
-                // A filled cell (black)
                 Rectangle()
                     .fill(.primary)
-                    .padding(2) // Small gap to keep the grid lines visible
+                    .padding(size * 0.05) // Proportional padding
             } else if state == .marked {
-                // A marked cell (X)
                 Image(systemName: "xmark")
                     .foregroundColor(.red)
+                    // Scale font based on cell size
                     .font(.system(size: size * 0.6, weight: .bold))
             }
         }
@@ -51,9 +49,9 @@ struct NonogramCellView: View {
 
 #Preview {
     HStack {
-        NonogramCellView(state: .empty)
-        NonogramCellView(state: .filled)
-        NonogramCellView(state: .marked)
+        NonogramCellView(state: .empty, size: 35)
+        NonogramCellView(state: .filled, size: 35)
+        NonogramCellView(state: .marked, size: 35)
     }
     .padding()
 }

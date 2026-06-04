@@ -9,8 +9,7 @@ import SwiftUI
 
 /**
  A view that renders the puzzle grid and clues.
- By isolating this in its own struct, we ensure that SwiftUI doesn't
- mix up indices when the puzzle size changes.
+ Automatically calculates cell size to ensure the entire grid is visible.
  */
 struct NonogramBoardView: View {
     
@@ -24,28 +23,44 @@ struct NonogramBoardView: View {
     
     // MARK: - Computed properties
     
+    // Dynamic cell size based on grid complexity
+    private var cellSize: CGFloat {
+        let gridWidth = CGFloat(puzzle.grid.isEmpty ? 1 : puzzle.grid[0].count)
+        if gridWidth <= 5 {
+            return 45 // Larger for Easy
+        } else if gridWidth <= 10 {
+            return 30 // Standard for Medium
+        } else {
+            return 22 // Smaller for Hard (15x15) to fit on screen
+        }
+    }
+    
+    // Fixed width for the row clues area
+    private let rowClueWidth: CGFloat = 60
+    
+    // Fixed height for the column clues area
+    private let colClueHeight: CGFloat = 70
+    
     var body: some View {
         VStack(spacing: 0) {
             
             // 1. Column Clues
             HStack(spacing: 0) {
-                // Spacer for the top-left corner (above row clues)
-                // Width matches the row clues frame below
+                // Spacer matches the row clues area
                 Spacer()
-                    .frame(width: 60) 
+                    .frame(width: rowClueWidth) 
                 
-                // Column clues display
-                // Using .indices is safer than 0..<count for dynamic arrays
                 ForEach(puzzle.columnClues.indices, id: \.self) { columnIndex in
-                    VStack(spacing: 2) {
+                    VStack(spacing: 1) {
+                        Spacer(minLength: 0)
                         let clues: [Int] = puzzle.columnClues[columnIndex]
                         ForEach(clues.indices, id: \.self) { clueIndex in
-                            let clue: Int = clues[clueIndex]
-                            Text("\(clue)")
-                                .font(.caption2)
-                                .frame(width: 30)
+                            Text("\(clues[clueIndex])")
+                                .font(.system(size: cellSize * 0.45, weight: .medium, design: .monospaced))
+                                .frame(width: cellSize)
                         }
                     }
+                    .frame(width: cellSize, height: colClueHeight)
                 }
             }
             
@@ -58,18 +73,17 @@ struct NonogramBoardView: View {
                         Spacer()
                         let clues: [Int] = puzzle.rowClues[rowIndex]
                         ForEach(clues.indices, id: \.self) { clueIndex in
-                            let clue: Int = clues[clueIndex]
-                            Text("\(clue)")
-                                .font(.caption2)
+                            Text("\(clues[clueIndex])")
+                                .font(.system(size: cellSize * 0.45, weight: .medium, design: .monospaced))
                         }
                     }
-                    .frame(width: 60)
-                    .padding(.trailing, 5)
+                    .frame(width: rowClueWidth, height: cellSize)
+                    .padding(.trailing, 4)
                     
-                    // The interactive row of cells
+                    // Interactive Row
                     let row: [CellState] = puzzle.grid[rowIndex]
                     ForEach(row.indices, id: \.self) { columnIndex in
-                        NonogramCellView(state: row[columnIndex])
+                        NonogramCellView(state: row[columnIndex], size: cellSize)
                             .onTapGesture {
                                 onToggle(rowIndex, columnIndex)
                             }
@@ -77,10 +91,14 @@ struct NonogramBoardView: View {
                 }
             }
         }
+        // Ensure the entire construction is centered
         .padding()
     }
 }
 
 #Preview {
-    NonogramBoardView(puzzle: PuzzleLibrary.easyPuzzles[0], onToggle: { _, _ in })
+    VStack {
+        NonogramBoardView(puzzle: PuzzleLibrary.easyPuzzles[0], onToggle: { _, _ in })
+        NonogramBoardView(puzzle: PuzzleLibrary.hardPuzzles[0], onToggle: { _, _ in })
+    }
 }
