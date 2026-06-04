@@ -9,63 +9,75 @@ import SwiftUI
 
 /**
  The main view for the Nonogram game.
- It displays the difficulty selection, the win status, and the game board.
+ It displays the difficulty selection, puzzle selection, and the game board.
  */
 struct NonogramGameView: View {
     
     // MARK: - Stored properties
     
     // The view model that manages the game state
-    @State var viewModel = NonogramViewModel()
-    
-    // Tracks the current difficulty selection
-    @State private var selectedDifficulty: String = "Easy"
+    @State private var viewModel = NonogramViewModel()
     
     // MARK: - Computed properties
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 15) {
             
             // Header
             Text("Nonogram")
                 .font(.largeTitle)
                 .bold()
             
-            // Difficulty Picker
-            Picker("Difficulty", selection: $selectedDifficulty) {
-                Text("Easy (5x5)").tag("Easy")
-                Text("Medium (10x10)").tag("Medium")
-                Text("Hard (15x15)").tag("Hard")
+            // 1. Difficulty Picker (Top Bar)
+            Picker("Difficulty", selection: $viewModel.difficulty) {
+                Text("Easy").tag("Easy")
+                Text("Medium").tag("Medium")
+                Text("Hard").tag("Hard")
             }
             .pickerStyle(.segmented)
-            .onChange(of: selectedDifficulty) { 
-                // When the difficulty changes, load the corresponding puzzle
-                if selectedDifficulty == "Easy" {
-                    viewModel.loadPuzzle(Nonogram.example5x5)
-                } else if selectedDifficulty == "Medium" {
-                    viewModel.loadPuzzle(Nonogram.example10x10)
-                } else if selectedDifficulty == "Hard" {
-                    viewModel.loadPuzzle(Nonogram.house15x15)
-                }
+            .onChange(of: viewModel.difficulty) {
+                // Tell the view model to handle the difficulty change logic
+                viewModel.changeDifficulty(to: viewModel.difficulty)
             }
             
-            // Win message
-            if viewModel.puzzle.isSolved {
-                Text("You Solved It! 🎉")
-                    .font(.headline)
-                    .foregroundColor(.green)
-                    .padding()
-                    .background(RoundedRectangle(cornerRadius: 10).fill(.green.opacity(0.1)))
-            } else {
-                Text("Complete the image!")
+            // 2. Puzzle Selection Menu (Dropdown)
+            HStack {
+                Text("Select Puzzle:")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+                
+                Picker("Puzzle", selection: $viewModel.selectedPuzzleName) {
+                    ForEach(viewModel.currentPuzzleList) { puzzle in
+                        Text(puzzle.name).tag(puzzle.name)
+                    }
+                }
+                .pickerStyle(.menu)
+                .onChange(of: viewModel.selectedPuzzleName) {
+                    // Tell the view model to load the specific puzzle by name
+                    viewModel.changePuzzle(to: viewModel.selectedPuzzleName)
+                }
+            }
+            .padding(.horizontal)
+            .background(RoundedRectangle(cornerRadius: 8).fill(.gray.opacity(0.1)))
+            
+            // Win message or Status
+            Group {
+                if viewModel.puzzle.isSolved {
+                    Text("Solved: \(viewModel.puzzle.name)! 🎉")
+                        .font(.headline)
+                        .foregroundColor(.green)
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(.green.opacity(0.1)))
+                } else {
+                    Text("Drawing: \(viewModel.puzzle.name)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
             }
             
             // The Game Board
             ScrollView([.horizontal, .vertical]) {
-                // By passing the puzzle as an input to a separate View struct (NonogramBoardView),
-                // we isolate the grid logic. 
+                // By passing the puzzle as an input to a separate View struct, we isolate the grid logic.
                 // Using .id(viewModel.puzzle.id) forces SwiftUI to recreate the board 
                 // whenever the puzzle changes, preventing index-out-of-range crashes.
                 NonogramBoardView(puzzle: viewModel.puzzle, onToggle: { row, col in

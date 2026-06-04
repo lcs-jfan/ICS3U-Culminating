@@ -19,15 +19,16 @@ struct Nonogram: Identifiable {
     // Unique identifier so SwiftUI can distinguish different puzzle instances
     let id = UUID()
     
+    // The name of the puzzle
+    let name: String
+    
     // The current state of the grid as the user plays.
-    // This is a 2D array where grid[row][column] gives the state of a cell.
     var grid: [[CellState]]
     
     // The correct solution for the puzzle. 
-    // 'true' means the cell should be filled, 'false' means it should be empty.
     let solution: [[Bool]]
     
-    // The numerical clues displayed for each row (e.g., [2, 1] means a block of 2 and a block of 1).
+    // The numerical clues displayed for each row.
     let rowClues: [[Int]]
     
     // The numerical clues displayed for each column.
@@ -36,46 +37,56 @@ struct Nonogram: Identifiable {
     // MARK: - Initializer
     
     /**
-     Initializes a new Nonogram puzzle with a given solution.
-     The grid is automatically created with 'empty' cells, and clues are calculated.
+     Initializes a new Nonogram puzzle with a name and a given solution.
+     Includes extreme safety checks to ensure the grid is perfectly formed.
      */
-    init(solution: [[Bool]]) {
+    init(name: String, solution: [[Bool]]) {
+        self.name = name
         self.solution = solution
         
-        // Determine dimensions based on the solution grid
+        // 1. Determine the maximum dimensions safely (handles "jagged" arrays)
         let rowCount: Int = solution.count
-        let columnCount: Int = solution.isEmpty ? 0 : solution[0].count
+        var maxColumnCount: Int = 0
+        for row in solution {
+            if row.count > maxColumnCount {
+                maxColumnCount = row.count
+            }
+        }
         
-        // Initialize the playable grid as entirely 'empty'
+        // 2. Initialize the playable grid as entirely 'empty'
+        // We ensure every row has the exact same number of columns to prevent indexing crashes
         var newGrid: [[CellState]] = []
         for _ in 0..<rowCount {
-            var row: [CellState] = []
-            for _ in 0..<columnCount {
-                row.append(.empty)
+            var gridRow: [CellState] = []
+            for _ in 0..<maxColumnCount {
+                gridRow.append(.empty)
             }
-            newGrid.append(row)
+            newGrid.append(gridRow)
         }
         self.grid = newGrid
         
-        // Automatically derive clues from the solution so level creators don't have to provide them manually
+        // 3. Automatically derive clues with safety boundary checks
         self.rowClues = Nonogram.calculateRowClues(for: solution)
-        self.columnClues = Nonogram.calculateColumnClues(for: solution)
+        self.columnClues = Nonogram.calculateColumnClues(for: solution, maxColumns: maxColumnCount)
     }
     
     // MARK: - Computed properties
     
     /**
      Checks if the player has correctly solved the puzzle.
-     The puzzle is solved if every '.filled' cell in the grid matches a 'true' in the solution,
-     and every 'true' in the solution is '.filled' in the grid.
+     Uses defensive indexing to prevent crashes.
      */
     var isSolved: Bool {
-        for rowIndex in 0..<solution.count {
-            for columnIndex in 0..<solution[rowIndex].count {
-                let cellIsFilled: Bool = grid[rowIndex][columnIndex] == .filled
-                let solutionIsFilled: Bool = solution[rowIndex][columnIndex]
+        let checkRowCount = min(grid.count, solution.count)
+        for rowIndex in 0..<checkRowCount {
+            let gridRow = grid[rowIndex]
+            let solutionRow = solution[rowIndex]
+            let checkColCount = min(gridRow.count, solutionRow.count)
+            
+            for columnIndex in 0..<checkColCount {
+                let cellIsFilled: Bool = gridRow[columnIndex] == .filled
+                let solutionIsFilled: Bool = solutionRow[columnIndex]
                 
-                // If the player's cell state doesn't match the required solution state, they haven't won yet
                 if cellIsFilled != solutionIsFilled {
                     return false
                 }
@@ -88,129 +99,292 @@ struct Nonogram: Identifiable {
     
     /**
      Calculates clues for every row in the solution.
-     A "clue" is an array of integers representing consecutive runs of 'true' values.
      */
     private static func calculateRowClues(for solution: [[Bool]]) -> [[Int]] {
         var allRowClues: [[Int]] = []
-        
         for row in solution {
             var clues: [Int] = []
             var currentRun: Int = 0
-            
             for isFilled in row {
                 if isFilled {
-                    // We found a filled cell, so increase the current run count
                     currentRun += 1
-                } else {
-                    // We hit an empty cell. If we were counting a run, save it as a clue.
-                    if currentRun > 0 {
-                        clues.append(currentRun)
-                        currentRun = 0
-                    }
+                } else if currentRun > 0 {
+                    clues.append(currentRun)
+                    currentRun = 0
                 }
             }
-            
-            // If the row ended while we were still counting a run, save it.
-            if currentRun > 0 {
-                clues.append(currentRun)
-            }
-            
-            // Standard nonograms show a '0' for completely empty rows.
-            if clues.isEmpty {
-                clues.append(0)
-            }
-            
+            if currentRun > 0 { clues.append(currentRun) }
+            if clues.isEmpty { clues.append(0) }
             allRowClues.append(clues)
         }
-        
         return allRowClues
     }
     
     /**
-     Calculates clues for every column in the solution.
-     Works similarly to row calculation but iterates through column indices first.
+     Calculates clues for every column. 
+     Uses 'maxColumns' and safety checks to prevent index-out-of-bounds.
      */
-    private static func calculateColumnClues(for solution: [[Bool]]) -> [[Int]] {
-        guard !solution.isEmpty else { return [] }
-        
-        let rowCount: Int = solution.count
-        let columnCount: Int = solution[0].count
+    private static func calculateColumnClues(for solution: [[Bool]], maxColumns: Int) -> [[Int]] {
         var allColumnClues: [[Int]] = []
+        let rowCount = solution.count
         
-        for columnIndex in 0..<columnCount {
+        for columnIndex in 0..<maxColumns {
             var clues: [Int] = []
             var currentRun: Int = 0
-            
             for rowIndex in 0..<rowCount {
-                let isFilled: Bool = solution[rowIndex][columnIndex]
+                let row = solution[rowIndex]
                 
-                if isFilled {
-                    currentRun += 1
-                } else {
-                    if currentRun > 0 {
+                // Safety check: Does this row actually have this column?
+                if columnIndex < row.count {
+                    if row[columnIndex] {
+                        currentRun += 1
+                    } else if currentRun > 0 {
                         clues.append(currentRun)
                         currentRun = 0
                     }
+                } else if currentRun > 0 {
+                    // Treat missing columns in short rows as 'false'
+                    clues.append(currentRun)
+                    currentRun = 0
                 }
             }
-            
-            if currentRun > 0 {
-                clues.append(currentRun)
-            }
-            
-            if clues.isEmpty {
-                clues.append(0)
-            }
-            
+            if currentRun > 0 { clues.append(currentRun) }
+            if clues.isEmpty { clues.append(0) }
             allColumnClues.append(clues)
         }
-        
         return allColumnClues
     }
 }
 
-// MARK: - Example puzzles
+// MARK: - Puzzle Library
 
-extension Nonogram {
-    // A simple 5x5 pattern for testing
-    static let example5x5 = Nonogram(solution: [
-        [false, true, true, true, false],
-        [true, true, false, true, true],
-        [true, false, false, false, true],
-        [true, true, false, true, true],
-        [false, true, true, true, false]
-    ])
+struct PuzzleLibrary {
     
-    // A larger 10x10 pattern (resembling a circle)
-    static let example10x10 = Nonogram(solution: [
-        [false, false, false, true, true, true, true, false, false, false],
-        [false, false, true, true, true, true, true, true, false, false],
-        [false, true, true, false, false, false, false, true, true, false],
-        [true, true, false, false, false, false, false, false, true, true],
-        [true, true, false, false, false, false, false, false, true, true],
-        [true, true, false, false, false, false, false, false, true, true],
-        [true, true, false, false, false, false, false, false, true, true],
-        [false, true, true, false, false, false, false, true, true, false],
-        [false, false, true, true, true, true, true, true, false, false],
-        [false, false, false, true, true, true, true, false, false, false]
-    ])
+    // EASY (5x5)
+    static let easyPuzzles: [Nonogram] = [
+        Nonogram(name: "Heart", solution: [
+            [false, true, false, true, false],
+            [true, true, true, true, true],
+            [true, true, true, true, true],
+            [false, true, true, true, false],
+            [false, false, true, false, false]
+        ]),
+        Nonogram(name: "Arrow", solution: [
+            [false, false, true, false, false],
+            [false, true, true, true, false],
+            [true, true, true, true, true],
+            [false, false, true, false, false],
+            [false, false, true, false, false]
+        ]),
+        Nonogram(name: "Letter X", solution: [
+            [true, false, false, false, true],
+            [false, true, false, true, false],
+            [false, false, true, false, false],
+            [false, true, false, true, false],
+            [true, false, false, false, true]
+        ]),
+        Nonogram(name: "Checkmark", solution: [
+            [false, false, false, false, true],
+            [false, false, false, true, true],
+            [true, false, true, true, false],
+            [false, true, true, false, false],
+            [false, false, false, false, false]
+        ]),
+        Nonogram(name: "Small Square", solution: [
+            [true, true, true, true, true],
+            [true, false, false, false, true],
+            [true, false, false, false, true],
+            [true, false, false, false, true],
+            [true, true, true, true, true]
+        ]),
+        Nonogram(name: "Cross", solution: [
+            [false, false, true, false, false],
+            [false, false, true, false, false],
+            [true, true, true, true, true],
+            [false, false, true, false, false],
+            [false, false, true, false, false]
+        ])
+    ]
     
-    // A 15x15 pattern resembling a simple house (fitting the original theme!)
-    static let house15x15 = Nonogram(solution: [
-        [false, false, false, false, false, false, false, true, false, false, false, false, false, false, false],
-        [false, false, false, false, false, false, true, true, true, false, false, false, false, false, false],
-        [false, false, false, false, false, true, true, true, true, true, false, false, false, false, false],
-        [false, false, false, false, true, true, true, true, true, true, true, false, false, false, false],
-        [false, false, false, true, true, true, true, true, true, true, true, true, false, false, false],
-        [false, false, true, true, true, true, true, true, true, true, true, true, true, false, false],
-        [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
-        [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
-        [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
-        [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
-        [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
-        [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
-        [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
-        [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
-        [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false]
-    ])
+    // MEDIUM (10x10)
+    static let mediumPuzzles: [Nonogram] = [
+        Nonogram(name: "Smiley", solution: [
+            [false, false, true, true, true, true, true, true, false, false],
+            [false, true, false, false, false, false, false, false, true, false],
+            [true, false, true, false, false, false, false, true, false, true],
+            [true, false, false, false, false, false, false, false, false, true],
+            [true, false, true, false, false, false, false, true, false, true],
+            [true, false, false, true, true, true, true, false, false, true],
+            [true, false, false, false, false, false, false, false, false, true],
+            [false, true, false, false, false, false, false, false, true, false],
+            [false, false, true, true, true, true, true, true, false, false],
+            [false, false, false, false, false, false, false, false, false, false]
+        ]),
+        Nonogram(name: "Invader", solution: [
+            [false, false, true, false, false, false, false, true, false, false],
+            [false, false, false, true, false, false, true, false, false, false],
+            [false, false, true, true, true, true, true, true, false, false],
+            [false, true, true, false, true, true, false, true, true, false],
+            [true, true, true, true, true, true, true, true, true, true],
+            [true, false, true, true, true, true, true, true, false, true],
+            [true, false, true, false, false, false, false, true, false, true],
+            [false, false, false, true, true, true, true, false, false, false],
+            [false, false, false, false, false, false, false, false, false, false],
+            [false, false, false, false, false, false, false, false, false, false]
+        ]),
+        Nonogram(name: "Diamond", solution: [
+            [false, false, false, false, true, true, false, false, false, false],
+            [false, false, false, true, true, true, true, false, false, false],
+            [false, false, true, true, true, true, true, true, false, false],
+            [false, true, true, true, true, true, true, true, true, false],
+            [true, true, true, true, true, true, true, true, true, true],
+            [true, true, true, true, true, true, true, true, true, true],
+            [false, true, true, true, true, true, true, true, true, false],
+            [false, false, true, true, true, true, true, true, false, false],
+            [false, false, false, true, true, true, true, false, false, false],
+            [false, false, false, false, true, true, false, false, false, false]
+        ]),
+        Nonogram(name: "Tree", solution: [
+            [false, false, false, false, true, true, false, false, false, false],
+            [false, false, false, true, true, true, true, false, false, false],
+            [false, false, true, true, true, true, true, true, false, false],
+            [false, true, true, true, true, true, true, true, true, false],
+            [false, false, true, true, true, true, true, true, false, false],
+            [false, true, true, true, true, true, true, true, true, false],
+            [true, true, true, true, true, true, true, true, true, true],
+            [false, false, false, true, true, true, true, false, false, false],
+            [false, false, false, true, true, true, true, false, false, false],
+            [false, false, false, true, true, true, true, false, false, false]
+        ]),
+        Nonogram(name: "Plus", solution: [
+            [false, false, false, false, true, true, false, false, false, false],
+            [false, false, false, false, true, true, false, false, false, false],
+            [false, false, false, false, true, true, false, false, false, false],
+            [false, false, false, false, true, true, false, false, false, false],
+            [true, true, true, true, true, true, true, true, true, true],
+            [true, true, true, true, true, true, true, true, true, true],
+            [false, false, false, false, true, true, false, false, false, false],
+            [false, false, false, false, true, true, false, false, false, false],
+            [false, false, false, false, true, true, false, false, false, false],
+            [false, false, false, false, true, true, false, false, false, false]
+        ]),
+        Nonogram(name: "Frames", solution: [
+            [true, true, true, true, true, true, true, true, true, true],
+            [true, false, false, false, false, false, false, false, false, true],
+            [true, false, true, true, true, true, true, true, false, true],
+            [true, false, true, false, false, false, false, true, false, true],
+            [true, false, true, false, false, false, false, true, false, true],
+            [true, false, true, false, false, false, false, true, false, true],
+            [true, false, true, false, false, false, false, true, false, true],
+            [true, false, true, true, true, true, true, true, false, true],
+            [true, false, false, false, false, false, false, false, false, true],
+            [true, true, true, true, true, true, true, true, true, true]
+        ])
+    ]
+    
+    // HARD (15x15)
+    static let hardPuzzles: [Nonogram] = [
+        Nonogram(name: "House", solution: [
+            [false, false, false, false, false, false, false, true, false, false, false, false, false, false, false],
+            [false, false, false, false, false, false, true, true, true, false, false, false, false, false, false],
+            [false, false, false, false, false, true, true, true, true, true, false, false, false, false, false],
+            [false, false, false, false, true, true, true, true, true, true, true, false, false, false, false],
+            [false, false, false, true, true, true, true, true, true, true, true, true, false, false, false],
+            [false, false, true, true, true, true, true, true, true, true, true, true, true, false, false],
+            [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
+            [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+            [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
+            [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
+            [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
+            [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
+            [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
+            [false, true, true, false, false, false, true, true, true, false, false, false, true, true, false],
+            [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false]
+        ]),
+        Nonogram(name: "Robot", solution: [
+            [false, false, false, false, true, true, true, true, true, false, false, false, false, false, false],
+            [false, false, false, false, true, true, true, true, true, false, false, false, false, false, false],
+            [false, false, false, false, true, false, true, false, true, false, false, false, false, false, false],
+            [false, false, false, false, true, true, true, true, true, false, false, false, false, false, false],
+            [false, false, false, true, true, true, true, true, true, true, false, false, false, false, false],
+            [false, true, true, true, true, true, true, true, true, true, true, true, false, false, false],
+            [false, true, false, true, true, true, true, true, true, true, false, true, false, false, false],
+            [false, true, false, true, true, true, true, true, true, true, false, true, false, false, false],
+            [false, true, true, true, true, true, true, true, true, true, true, true, false, false, false],
+            [false, false, false, true, true, true, true, true, true, true, false, false, false, false, false],
+            [false, false, false, true, true, true, true, true, true, true, false, false, false, false, false],
+            [false, false, false, true, true, false, false, false, true, true, false, false, false, false, false],
+            [false, false, false, true, true, false, false, false, true, true, false, false, false, false, false],
+            [false, false, false, true, true, false, false, false, true, true, false, false, false, false, false],
+            [false, false, true, true, true, false, false, false, true, true, true, false, false, false, false]
+        ]),
+        Nonogram(name: "Landscape", solution: [
+            [false, false, false, false, false, false, false, false, false, false, false, true, true, false, false],
+            [false, false, false, false, false, false, false, false, false, false, true, true, true, true, false],
+            [false, false, false, false, false, false, false, false, false, true, true, true, true, true, true],
+            [false, false, false, false, false, false, false, false, true, true, true, true, true, true, true],
+            [false, false, false, false, true, false, false, true, true, true, true, true, true, true, true],
+            [false, false, false, true, true, true, false, true, true, true, true, true, true, true, true],
+            [false, false, true, true, true, true, true, true, true, true, true, true, true, true, true],
+            [false, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+            [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+            [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+            [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+            [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
+            [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
+            [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+            [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true]
+        ]),
+        Nonogram(name: "Cat", solution: [
+            [true, false, false, false, false, false, false, false, false, false, false, false, false, false, true],
+            [true, true, false, false, false, false, false, false, false, false, false, false, false, true, true],
+            [true, true, true, false, false, false, false, false, false, false, false, false, true, true, true],
+            [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+            [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+            [true, true, false, false, true, true, true, true, true, true, true, false, false, true, true],
+            [true, true, false, false, true, false, true, true, true, false, true, false, false, true, true],
+            [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+            [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true],
+            [true, true, true, true, true, false, false, false, false, false, true, true, true, true, true],
+            [false, true, true, true, true, true, true, true, true, true, true, true, true, true, false],
+            [false, false, true, true, true, true, true, true, true, true, true, true, true, false, false],
+            [false, false, false, true, true, true, true, true, true, true, true, true, false, false, false],
+            [false, false, false, false, true, true, true, true, true, true, true, false, false, false, false],
+            [false, false, false, false, false, true, true, true, true, true, false, false, false, false, false]
+        ]),
+        Nonogram(name: "Big Heart", solution: [
+            [false, false, true, true, false, false, false, false, false, true, true, false, false, false, false],
+            [false, true, true, true, true, false, false, false, true, true, true, true, false, false, false],
+            [true, true, true, true, true, true, false, true, true, true, true, true, true, false, false],
+            [true, true, true, true, true, true, true, true, true, true, true, true, true, false, false],
+            [true, true, true, true, true, true, true, true, true, true, true, true, true, false, false],
+            [false, true, true, true, true, true, true, true, true, true, true, true, false, false, false],
+            [false, false, true, true, true, true, true, true, true, true, true, false, false, false, false],
+            [false, false, false, true, true, true, true, true, true, true, false, false, false, false, false],
+            [false, false, false, false, true, true, true, true, true, false, false, false, false, false, false],
+            [false, false, false, false, false, true, true, true, false, false, false, false, false, false],
+            [false, false, false, false, false, false, true, false, false, false, false, false, false, false, false],
+            [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+            [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+            [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false],
+            [false, false, false, false, false, false, false, false, false, false, false, false, false, false, false]
+        ]),
+        Nonogram(name: "Checkboard", solution: [
+            [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true],
+            [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false],
+            [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true],
+            [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false],
+            [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true],
+            [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false],
+            [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true],
+            [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false],
+            [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true],
+            [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false],
+            [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true],
+            [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false],
+            [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true],
+            [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false],
+            [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true]
+        ])
+    ]
 }

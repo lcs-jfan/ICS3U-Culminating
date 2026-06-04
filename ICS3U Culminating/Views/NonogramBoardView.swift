@@ -80,3 +80,7 @@ struct NonogramBoardView: View {
         .padding()
     }
 }
+
+#Preview {
+    NonogramBoardView(puzzle: PuzzleLibrary.easyPuzzles[0], onToggle: { _, _ in })
+}
