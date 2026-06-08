@@ -8,52 +8,81 @@
 import SwiftUI
 
 /**
- A view that renders the puzzle grid and clues.
- Automatically calculates cell size to ensure the entire grid is visible.
+ VIEW: NonogramBoardView
+ -----------------------
+ This view is the "Heart" of the visual game. 
+ It renders the grid of squares and the numerical clues.
+ 
+ Logic Isolation:
+ By making this a separate struct, we ensure that SwiftUI doesn't mix up 
+ row and column indices when the user switches between puzzle sizes (like 5x5 and 15x15).
  */
 struct NonogramBoardView: View {
     
     // MARK: - Stored properties
     
-    // The specific puzzle data to display
+    /**
+     puzzle: The current Nonogram data being displayed.
+     Passed in from the parent NonogramGameView.
+     */
     let puzzle: Nonogram
     
-    // Action to perform when a cell is tapped
+    /**
+     onToggle: A "Closure" or "Callback" function.
+     When a cell is tapped, this view doesn't change data itself; 
+     it tells the ViewModel which (row, column) was clicked.
+     */
     let onToggle: (Int, Int) -> Void
     
-    // MARK: - Computed properties
+    // MARK: - Layout Constants
     
-    // Dynamic cell size based on grid complexity
+    /**
+     cellSize: A dynamic calculation of how big each square should be.
+     - 5x5 grid -> 45px (Big)
+     - 10x10 grid -> 30px (Medium)
+     - 15x15 grid -> 22px (Small)
+     This ensures the massive 15x15 grid still fits on the iPhone screen.
+     */
     private var cellSize: CGFloat {
         let gridWidth = CGFloat(puzzle.grid.isEmpty ? 1 : puzzle.grid[0].count)
         if gridWidth <= 5 {
-            return 45 // Larger for Easy
+            return 45
         } else if gridWidth <= 10 {
-            return 30 // Standard for Medium
+            return 30
         } else {
-            return 22 // Smaller for Hard (15x15) to fit on screen
+            return 22
         }
     }
     
-    // Fixed width for the row clues area
+    /**
+     rowClueWidth: The fixed width for the numbers on the left.
+     Used for alignment and centering math.
+     */
     private let rowClueWidth: CGFloat = 60
     
-    // Fixed height for the column clues area
+    /**
+     colClueHeight: The fixed height for the numbers on top.
+     */
     private let colClueHeight: CGFloat = 70
+    
+    // MARK: - Body (User Interface)
     
     var body: some View {
         VStack(spacing: 0) {
             
-            // 1. Column Clues
+            // --- ROW 1: COLUMN CLUES ---
             HStack(spacing: 0) {
-                // Spacer matches the row clues area
+                // Top-Left corner spacer (to leave room for row clues).
                 Spacer()
                     .frame(width: rowClueWidth) 
                 
+                // Draw each column's clue block.
                 ForEach(puzzle.columnClues.indices, id: \.self) { columnIndex in
                     VStack(spacing: 1) {
-                        Spacer(minLength: 0)
+                        Spacer(minLength: 0) // Pushes clues to the bottom of the block
                         let clues: [Int] = puzzle.columnClues[columnIndex]
+                        
+                        // Draw the individual numbers inside the block.
                         ForEach(clues.indices, id: \.self) { clueIndex in
                             Text("\(clues[clueIndex])")
                                 .font(.system(size: cellSize * 0.45, weight: .medium, design: .monospaced))
@@ -64,14 +93,15 @@ struct NonogramBoardView: View {
                 }
             }
             
-            // 2. Row Clues and Grid
+            // --- ROWS 2+: ROW CLUES AND INTERACTIVE CELLS ---
             ForEach(puzzle.grid.indices, id: \.self) { rowIndex in
                 HStack(spacing: 0) {
                     
-                    // Row clues display
+                    // LEFT: Row Clue Block.
                     HStack(spacing: 4) {
-                        Spacer()
+                        Spacer() // Pushes numbers to the right (close to the grid)
                         let clues: [Int] = puzzle.rowClues[rowIndex]
+                        
                         ForEach(clues.indices, id: \.self) { clueIndex in
                             Text("\(clues[clueIndex])")
                                 .font(.system(size: cellSize * 0.45, weight: .medium, design: .monospaced))
@@ -80,25 +110,23 @@ struct NonogramBoardView: View {
                     .frame(width: rowClueWidth, height: cellSize)
                     .padding(.trailing, 4)
                     
-                    // Interactive Row
+                    // RIGHT: The interactive cells for this row.
                     let row: [CellState] = puzzle.grid[rowIndex]
                     ForEach(row.indices, id: \.self) { columnIndex in
+                        // Reusable Cell Component.
                         NonogramCellView(state: row[columnIndex], size: cellSize)
                             .onTapGesture {
+                                // Execute the callback to the ViewModel.
                                 onToggle(rowIndex, columnIndex)
                             }
                     }
                 }
             }
         }
-        // Ensure the entire construction is centered
-        .padding()
+        .padding() // Exterior padding around the whole board
     }
 }
 
 #Preview {
-    VStack {
-        NonogramBoardView(puzzle: PuzzleLibrary.easyPuzzles[0], onToggle: { _, _ in })
-        NonogramBoardView(puzzle: PuzzleLibrary.hardPuzzles[0], onToggle: { _, _ in })
-    }
+    NonogramBoardView(puzzle: PuzzleLibrary.easyPuzzles[0], onToggle: { _, _ in })
 }
