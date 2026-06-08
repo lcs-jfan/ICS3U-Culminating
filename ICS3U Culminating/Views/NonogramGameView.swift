@@ -9,7 +9,7 @@ import SwiftUI
 
 /**
  The main view for the Nonogram game.
- The grid is precisely centered by offsetting the clue area.
+ Perfectly centered, polished, with high scores and a timer.
  */
 struct NonogramGameView: View {
     
@@ -21,113 +21,163 @@ struct NonogramGameView: View {
     // MARK: - Computed properties
     
     var body: some View {
-        VStack(spacing: 0) {
-            
-            // 1. Title
-            Text("Nonogram")
-                .font(.system(size: 40, design: .rounded))
-                .padding(.top, 20)
-            
-            // 2. Selection Area
-            VStack(spacing: 12) {
-                Picker("Difficulty", selection: $viewModel.difficulty) {
-                    Text("Easy").tag("Easy")
-                    Text("Medium").tag("Medium")
-                    Text("Hard").tag("Hard")
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: viewModel.difficulty) {
-                    viewModel.changeDifficulty(to: viewModel.difficulty)
-                }
+        ZStack {
+            VStack(spacing: 0) {
                 
+                // 1. Title and Timer
                 HStack {
-                    Image(systemName: "list.bullet.indent")
+                    Spacer()
+                    Text("Nonogram")
+                        .font(.system(size: 40, design: .rounded))
+                    Spacer()
+                }
+                .overlay(alignment: .trailing) {
+                    // Live Timer Display
+                    Text(viewModel.timeFormatted)
+                        .font(.system(.title3, design: .monospaced))
                         .foregroundColor(.secondary)
+                        .padding(.trailing, 20)
+                }
+                .padding(.top, 20)
+                
+                // 2. Selection Area
+                VStack(spacing: 12) {
+                    Picker("Difficulty", selection: $viewModel.difficulty) {
+                        Text("Easy").tag("Easy")
+                        Text("Medium").tag("Medium")
+                        Text("Hard").tag("Hard")
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: viewModel.difficulty) {
+                        viewModel.changeDifficulty(to: viewModel.difficulty)
+                    }
                     
-                    Picker("Puzzle", selection: $viewModel.selectedPuzzleName) {
-                        ForEach(viewModel.currentPuzzleList) { puzzle in
-                            Text(puzzle.name).tag(puzzle.name)
+                    HStack {
+                        Image(systemName: "list.bullet.indent")
+                            .foregroundColor(.secondary)
+                        
+                        Picker("Puzzle", selection: $viewModel.selectedPuzzleName) {
+                            ForEach(viewModel.currentPuzzleList) { puzzle in
+                                Text(puzzle.name).tag(puzzle.name)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .onChange(of: viewModel.selectedPuzzleName) {
+                            viewModel.changePuzzle(to: viewModel.selectedPuzzleName)
+                        }
+                        
+                        Spacer()
+                        
+                        if viewModel.puzzle.isSolved {
+                            Text("Solved! 🎉")
+                                .font(.subheadline.bold())
+                                .foregroundColor(.green)
                         }
                     }
-                    .pickerStyle(.menu)
-                    .onChange(of: viewModel.selectedPuzzleName) {
-                        viewModel.changePuzzle(to: viewModel.selectedPuzzleName)
-                    }
-                    
-                    Spacer()
-                    
-                    if viewModel.puzzle.isSolved {
-                        Text("Solved! 🎉")
-                            .font(.subheadline.bold())
-                            .foregroundColor(.green)
-                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color(uiColor: .secondarySystemBackground)))
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Color(uiColor: .secondarySystemBackground)))
-            }
-            .padding()
-            
-            Divider()
-            
-            // 3. Grid Area with Precise Offset Centering
-            ZStack {
-                Color(uiColor: .systemGroupedBackground)
-                    .ignoresSafeArea()
+                .padding()
                 
-                GeometryReader { geometry in
-                    ScrollView([.horizontal, .vertical], showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            Spacer(minLength: 0)
-                            
-                            HStack(spacing: 0) {
+                Divider()
+                
+                // 3. Perfectly Centered Grid Area
+                ZStack {
+                    Color(uiColor: .systemGroupedBackground)
+                        .ignoresSafeArea()
+                    
+                    GeometryReader { geometry in
+                        ScrollView([.horizontal, .vertical], showsIndicators: false) {
+                            VStack(spacing: 0) {
                                 Spacer(minLength: 0)
-                                
-                                // The NonogramBoardView has a 60px wide clue area on the left.
-                                // To make the GRID itself (the squares) perfectly centered,
-                                // we shift the entire board to the left by exactly half that width (30px).
-                                NonogramBoardView(puzzle: viewModel.puzzle, onToggle: { row, col in
-                                    viewModel.toggleCell(atRow: row, atColumn: col)
-                                })
-                                .id(viewModel.puzzle.id)
-                                .offset(x: -30) // Offset by half of rowClueWidth (60 / 2)
-                                
+                                HStack(spacing: 0) {
+                                    Spacer(minLength: 0)
+                                    
+                                    NonogramBoardView(puzzle: viewModel.puzzle, onToggle: { row, col in
+                                        viewModel.toggleCell(atRow: row, atColumn: col)
+                                    })
+                                    .id(viewModel.puzzle.id)
+                                    .offset(x: -30)
+                                    
+                                    Spacer(minLength: 0)
+                                }
+                                .offset(y: -35)
                                 Spacer(minLength: 0)
                             }
-                            
-                            // We also shift the whole board UP by half the clue height (70 / 2)
-                            // so the grid's center matches the screen's center vertically too.
-                            .offset(y: -35) 
-                            
-                            Spacer(minLength: 0)
+                            .frame(minWidth: geometry.size.width, minHeight: geometry.size.height)
                         }
-                        .frame(minWidth: geometry.size.width, minHeight: geometry.size.height)
                     }
                 }
-            }
-            
-            Divider()
-            
-            // 4. Bottom Controls
-            HStack(spacing: 20) {
-                Button(role: .destructive, action: {
-                    viewModel.resetPuzzle()
-                }) {
-                    Label("Reset", systemImage: "arrow.counterclockwise")
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.blue)
                 
-                Button(action: {
-                    viewModel.revealSolution()
-                }) {
-                    Label("Show Solution", systemImage: "eye")
+                Divider()
+                
+                // 4. Bottom Controls
+                HStack(spacing: 15) {
+                    Button(role: .destructive, action: {
+                        viewModel.resetPuzzle()
+                    }) {
+                        Label("Reset", systemImage: "arrow.counterclockwise")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
+                    
+                    Button(action: {
+                        viewModel.revealSolution()
+                    }) {
+                        Label("Reveal", systemImage: "eye")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
+                    
+                    Button(action: {
+                        viewModel.showingBestTime = true
+                    }) {
+                        Label("Best", systemImage: "stopwatch")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.purple)
                 }
-                .buttonStyle(.borderedProminent)
-                .tint(.orange)
+                .padding()
             }
-            .padding()
+            
+            // 5. Best Time Overlay
+            if viewModel.showingBestTime {
+                ZStack {
+                    // Dim background
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            viewModel.showingBestTime = false
+                        }
+                    
+                    // Overlay Window
+                    VStack(spacing: 20) {
+                        Text("Personal Best")
+                            .font(.headline)
+                        
+                        VStack(spacing: 8) {
+                            Text(viewModel.puzzle.name)
+                                .font(.title2.bold())
+                            
+                            Text(viewModel.getBestTime())
+                                .font(.system(size: 40, weight: .bold, design: .monospaced))
+                                .foregroundColor(.purple)
+                        }
+                        
+                        Button("Close") {
+                            viewModel.showingBestTime = false
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .padding(30)
+                    .background(RoundedRectangle(cornerRadius: 20).fill(Color(uiColor: .systemBackground)))
+                    .shadow(radius: 10)
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
         }
+        .animation(.spring(), value: viewModel.showingBestTime)
     }
 }
 
